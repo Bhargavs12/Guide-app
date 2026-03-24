@@ -1,0 +1,92 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the platform (traveler or guide).",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique ID of the user." },
+        "name": { "type": "string", "description": "The full name of the user." },
+        "email": { "type": "string", "format": "email", "description": "The email address of the user." },
+        "role": { "type": "string", "enum": ["traveler", "guide", "admin"], "description": "The role of the user." },
+        "photoURL": { "type": "string", "format": "url", "description": "The profile photo URL." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the user account was created." }
+      },
+      "required": ["uid", "name", "email", "role"]
+    },
+    "Guide": {
+      "title": "Guide",
+      "description": "Detailed profile for a guide.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The ID of the user who is a guide." },
+        "bio": { "type": "string", "description": "A short biography of the guide." },
+        "specialties": { "type": "array", "items": { "type": "string" }, "description": "List of guide specialties." },
+        "languages": { "type": "array", "items": { "type": "string" }, "description": "Languages spoken by the guide." },
+        "location": { "type": "string", "description": "The primary city/region the guide operates in." },
+        "rating": { "type": "number", "description": "The average rating of the guide." },
+        "reviewCount": { "type": "integer", "description": "The total number of reviews for the guide." },
+        "isVerified": { "type": "boolean", "description": "Whether the guide is verified by the platform." }
+      },
+      "required": ["uid", "bio", "location"]
+    },
+    "Tour": {
+      "title": "Tour",
+      "description": "An experience or tour offered by a guide.",
+      "type": "object",
+      "properties": {
+        "guideId": { "type": "string", "description": "The ID of the guide offering the tour." },
+        "title": { "type": "string", "description": "The title of the tour." },
+        "description": { "type": "string", "description": "A detailed description of the tour." },
+        "location": { "type": "string", "description": "The location of the tour." },
+        "price": { "type": "number", "description": "The price per person for the tour." },
+        "duration": { "type": "string", "description": "The duration of the tour (e.g., '4 Hours')." },
+        "groupSize": { "type": "string", "description": "The maximum group size." },
+        "images": { "type": "array", "items": { "type": "string", "format": "url" }, "description": "URLs of tour images." },
+        "itinerary": { "type": "array", "items": { "type": "object" }, "description": "The tour itinerary." },
+        "includes": { "type": "array", "items": { "type": "string" }, "description": "What is included in the tour." },
+        "excludes": { "type": "array", "items": { "type": "string" }, "description": "What is excluded from the tour." },
+        "rating": { "type": "number", "description": "The average rating of the tour." },
+        "reviewCount": { "type": "integer", "description": "The total number of reviews for the tour." }
+      },
+      "required": ["guideId", "title", "description", "price", "location"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "A booking record for a tour.",
+      "type": "object",
+      "properties": {
+        "travelerId": { "type": "string", "description": "The ID of the traveler who booked the tour." },
+        "guideId": { "type": "string", "description": "The ID of the guide for the tour." },
+        "tourId": { "type": "string", "description": "The ID of the tour booked." },
+        "date": { "type": "string", "format": "date", "description": "The date of the tour." },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "cancelled", "completed"], "description": "The status of the booking." },
+        "totalPaid": { "type": "number", "description": "The total amount paid for the booking." },
+        "peopleCount": { "type": "integer", "description": "The number of people in the booking." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the booking was made." }
+      },
+      "required": ["travelerId", "guideId", "tourId", "date", "status", "totalPaid", "peopleCount"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "A review for a tour or guide.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The ID of the user who wrote the review." },
+        "tourId": { "type": "string", "description": "The ID of the tour being reviewed." },
+        "guideId": { "type": "string", "description": "The ID of the guide being reviewed." },
+        "rating": { "type": "integer", "description": "The rating given (1-5)." },
+        "comment": { "type": "string", "description": "The review comment." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the review was written." }
+      },
+      "required": ["userId", "rating", "comment"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": { "schema": "User", "description": "User profiles." },
+    "/guides/{guideId}": { "schema": "Guide", "description": "Guide profiles." },
+    "/tours/{tourId}": { "schema": "Tour", "description": "Available tours." },
+    "/bookings/{bookingId}": { "schema": "Booking", "description": "Tour bookings." },
+    "/reviews/{reviewId}": { "schema": "Review", "description": "User reviews." }
+  }
+}

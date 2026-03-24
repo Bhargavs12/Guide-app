@@ -1,0 +1,7 @@
+{
+  "name": "GUIDE KAROO",
+  "description": "A modern tour guide and local experience booking platform to explore like a local with verified guides.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

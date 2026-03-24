@@ -1,0 +1,147 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Fields: uid (string), name (string), email (string), role (string), photoURL (string), createdAt (timestamp)
+    //
+    // Collection: guides
+    // Fields: uid (string), bio (string), specialties (list), languages (list), location (string), rating (number), reviewCount (int), isVerified (bool)
+    //
+    // Collection: tours
+    // Fields: guideId (string), title (string), description (string), location (string), price (number), duration (string), groupSize (string), images (list), itinerary (list), includes (list), excludes (list), rating (number), reviewCount (int)
+    //
+    // Collection: bookings
+    // Fields: travelerId (string), guideId (string), tourId (string), date (string), status (string), totalPaid (number), peopleCount (int), createdAt (timestamp)
+    //
+    // Collection: reviews
+    // Fields: userId (string), tourId (string), guideId (string), rating (int), comment (string), createdAt (timestamp)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "bhargav0001seema@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function validString(field, min, max) {
+      return request.resource.data[field] is string && 
+             request.resource.data[field].size() >= min && 
+             request.resource.data[field].size() <= max;
+    }
+
+    function validEmail(email) {
+      return email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasRequiredFields(['uid', 'name', 'email', 'role']) &&
+             hasOnlyAllowedFields(['uid', 'name', 'email', 'role', 'photoURL', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             validString('name', 2, 100) &&
+             validEmail(data.email) &&
+             data.role in ['traveler', 'guide', 'admin'];
+    }
+
+    function isValidGuide(data) {
+      return hasRequiredFields(['uid', 'bio', 'location']) &&
+             hasOnlyAllowedFields(['uid', 'bio', 'specialties', 'languages', 'location', 'rating', 'reviewCount', 'isVerified']) &&
+             data.uid == request.auth.uid &&
+             validString('bio', 10, 1000) &&
+             validString('location', 2, 100);
+    }
+
+    function isValidTour(data) {
+      return hasRequiredFields(['guideId', 'title', 'description', 'price', 'location']) &&
+             data.guideId == request.auth.uid &&
+             validString('title', 5, 200) &&
+             validString('description', 20, 5000) &&
+             data.price is number && data.price > 0;
+    }
+
+    function isValidBooking(data) {
+      return hasRequiredFields(['travelerId', 'guideId', 'tourId', 'date', 'status', 'totalPaid', 'peopleCount']) &&
+             data.travelerId == request.auth.uid &&
+             data.status in ['pending', 'confirmed', 'cancelled', 'completed'] &&
+             data.totalPaid is number && data.totalPaid >= 0 &&
+             data.peopleCount is int && data.peopleCount > 0;
+    }
+
+    function isValidReview(data) {
+      return hasRequiredFields(['userId', 'rating', 'comment']) &&
+             data.userId == request.auth.uid &&
+             data.rating is int && data.rating >= 1 && data.rating <= 5 &&
+             validString('comment', 5, 1000);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && (request.resource.data.role != 'admin' || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && (isOwner(userId) || isAdmin()) && (request.resource.data.role == resource.data.role || isAdmin());
+    }
+
+    match /guides/{guideId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isValidGuide(request.resource.data);
+      allow update: if isAuthenticated() && isValidGuide(request.resource.data) && (isOwner(guideId) || isAdmin());
+    }
+
+    match /tours/{tourId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isValidTour(request.resource.data);
+      allow update: if isAuthenticated() && isValidTour(request.resource.data) && (request.auth.uid == resource.data.guideId || isAdmin());
+      allow delete: if isAuthenticated() && (request.auth.uid == resource.data.guideId || isAdmin());
+    }
+
+    match /bookings/{bookingId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.travelerId || request.auth.uid == resource.data.guideId || isAdmin());
+      allow create: if isAuthenticated() && isValidBooking(request.resource.data);
+      allow update: if isAuthenticated() && (request.auth.uid == resource.data.travelerId || request.auth.uid == resource.data.guideId || isAdmin());
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isValidReview(request.resource.data);
+      allow update: if isAuthenticated() && isOwner(resource.data.userId) && isValidReview(request.resource.data);
+      allow delete: if isAuthenticated() && (isOwner(resource.data.userId) || isAdmin());
+    }
+
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}
