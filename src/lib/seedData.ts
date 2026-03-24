@@ -95,7 +95,12 @@ export async function seedInitialData() {
       }
       console.log('Seeding complete!');
     }
-  } catch (error) {
+  } catch (error: any) {
+    // Silently ignore permission errors during seeding as they are expected for non-admin users
+    if (error?.code === 'permission-denied' || error?.message?.includes('permission')) {
+      console.warn('Seeding skipped: Missing permissions. This is expected for non-admin users.');
+      return;
+    }
     handleFirestoreError(error, OperationType.WRITE, 'seeding');
   }
 }

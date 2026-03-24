@@ -40,7 +40,13 @@ export default function Home() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        await seedInitialData();
+        
+        // Try seeding, but don't let it block the page if it fails
+        try {
+          await seedInitialData();
+        } catch (e) {
+          console.warn('Initial seeding failed, continuing to fetch data...', e);
+        }
         
         const guidesRef = collection(db, 'guides');
         const guidesQuery = query(guidesRef, limit(4));

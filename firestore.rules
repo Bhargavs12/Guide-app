@@ -115,14 +115,14 @@ service cloud.firestore {
 
     match /guides/{guideId} {
       allow read: if true;
-      allow create: if isAuthenticated() && isValidGuide(request.resource.data);
-      allow update: if isAuthenticated() && isValidGuide(request.resource.data) && (isOwner(guideId) || isAdmin());
+      allow create: if isAuthenticated() && (isValidGuide(request.resource.data) || isAdmin());
+      allow update: if isAuthenticated() && (isValidGuide(request.resource.data) || isAdmin()) && (isOwner(guideId) || isAdmin());
     }
 
     match /tours/{tourId} {
       allow read: if true;
-      allow create: if isAuthenticated() && isValidTour(request.resource.data);
-      allow update: if isAuthenticated() && isValidTour(request.resource.data) && (request.auth.uid == resource.data.guideId || isAdmin());
+      allow create: if isAuthenticated() && (isValidTour(request.resource.data) || isAdmin());
+      allow update: if isAuthenticated() && (isValidTour(request.resource.data) || isAdmin()) && (request.auth.uid == resource.data.guideId || isAdmin());
       allow delete: if isAuthenticated() && (request.auth.uid == resource.data.guideId || isAdmin());
     }
 
@@ -130,6 +130,12 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (request.auth.uid == resource.data.travelerId || request.auth.uid == resource.data.guideId || isAdmin());
       allow create: if isAuthenticated() && isValidBooking(request.resource.data);
       allow update: if isAuthenticated() && (request.auth.uid == resource.data.travelerId || request.auth.uid == resource.data.guideId || isAdmin());
+    }
+
+    match /guide_applications/{applicationId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
     }
 
     match /reviews/{reviewId} {
